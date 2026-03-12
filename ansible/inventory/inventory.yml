@@ -232,3 +232,6 @@ all:
             anarchyscripts.xvm.mit.edu:
               maintainers:
                 - username: jnoguera
+            nothing-computes.mit.edu: # not a real hostname!
+              maintainers:
+                - username: amigdal
