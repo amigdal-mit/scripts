@@ -1,0 +1,11 @@
+--- xmltooling.spec.orig	2026-08-01 01:52:52.600269749 -0400
++++ xmltooling.spec	2026-08-01 02:01:03.820072927 -0400
+@@ -102,7 +102,7 @@
+ %if 0%{?rhel} == 7 || 0%{?amzn} == 2
+ %configure %{?xmltooling_options} %{!?_without_xmlsec: --with-xmlsec} PKG_CONFIG_PATH=/opt/shibboleth/%{_lib}/pkgconfig CXXFLAGS="-std=c++11"
+ %else
+-%configure %{?xmltooling_options} %{!?_without_xmlsec: --with-xmlsec}
++%configure %{?xmltooling_options} %{!?_without_xmlsec: --with-xmlsec} CXXFLAGS="-std=c++11"
+ %endif
+ %{__make}
+ 

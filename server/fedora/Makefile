@@ -24,7 +24,7 @@ upstream_hackage = ghc-cgi ghc-unix-handle
 gems		= pony:1.8 fcgi:0.9.2.1
 upstream_gems	= rubygem-pony rubygem-fcgi
 upstream_eggs   = python-authkit
-upstream	= openafs $(upstream_yum) $(upstream_hackage) $(upstream_gems) $(upstream_eggs) moira zephyr zephyr.i686 python-zephyr python-afs python-moira python-hesiod athena-aclocal discuss
+upstream	= openafs shibboleth $(upstream_yum) $(upstream_hackage) $(upstream_gems) $(upstream_eggs) moira zephyr zephyr.i686 python-zephyr python-afs python-moira python-hesiod athena-aclocal discuss
 oursrc		= execsys tokensys accountadm httpdmods logview sql-signup nss_nonlocal nss_nonlocal.i686 whoisd athrun php_scripts scripts-wizard scripts-base scripts-static-cat fuse-better-mousetrapfs scripts-munin-plugins
 allsrc		= $(upstream) $(oursrc)
 oursrcdir	= ${PWD}/../common/oursrc
@@ -41,6 +41,8 @@ out_sbin	= $(topdir)/sbin
 
 dload		= ${PWD}/.dload
 openafs_url	= "https://www.openafs.org/dl/openafs/1.6.22.1/openafs-1.6.22.1-1.src.rpm"
+shib_url        = "https://mirrors.rit.edu/shibboleth/rockylinux10/src/"
+shib_url_files  = liblog4shib2-2.0.1-3.el10.src.rpm libxerces-c-3_3-3.3.0-2.el10.src.rpm libxml-security-c30-3.0.0-1.el10.src.rpm libxmltooling11-3.3.0-3.el10.src.rpm libsaml13-3.3.1-3.el10.src.rpm shibboleth-3.5.2-1.el10.src.rpm
 #zephyr_url	= "http://zephyr.1ts.org/files/zephyr-3.0.2.tar.gz"
 
 PKG		= $(patsubst %.i686,%,$@)
@@ -69,6 +71,7 @@ download: download_stamp
 download_stamp:
 	mkdir -p $(dload)
 	cd $(dload) && yumdownloader --disablerepo=scripts --source $(upstream_yum)
+	$(foreach fname, $(shib_url_files), wget -P $(dload) $(shib_url)$(fname);)
 	wget -P $(dload) $(openafs_url)
 	#wget -P $(dload) $(zephyr_url)
 	cd $(tmp_src) && wget -nd -r -l1 -np -A.orig.tar.gz https://debathena.mit.edu/apt/pool/debathena/d/debathena-moira/
@@ -161,6 +164,19 @@ $(filter %.i686,$(upstream)): %.i686: setup patch-specs
 $(filter-out %.i686,$(upstream)): %: setup patch-specs
 	rpmbuild ${rpmbuild_args} -bs ${tmp_specs}/${PKG}.spec
 	/usr/bin/mock -r scripts-fc20-`uname -m` ${rpmbuild_args} -v --rebuild `ls -t ${out_srpms}/${PKG}-[0-9]*.src.rpm | head -1`
+
+shibboleth: setup patch-specs download
+	rpmbuild ${rpmbuild_args} -bs ${tmp_specs}/shibboleth.spec
+	rpmbuild ${rpmbuild_args} -bs ${tmp_specs}/xmltooling.spec
+	/usr/bin/mockchain -r scripts-fc20-`uname -m` \
+		--localrepo=${HOME}/mock-shibboleth \
+		-m --define='scriptsversion $(scriptsversion)' -m -v \
+		$(dload)/liblog4shib2-2.0.1-3.el10.src.rpm \
+		$(dload)/libxerces-c-3_3-3.3.0-2.el10.src.rpm \
+		$(dload)/libxml-security-c30-3.0.0-1.el10.src.rpm \
+		`ls -t ${out_srpms}/libxmltooling11-[0-9]*.src.rpm | head -1` \
+		$(dload)/libsaml13-3.3.1-3.el10.src.rpm \
+		`ls -t ${out_srpms}/shibboleth-[0-9]*.src.rpm | head -1`
 
 openafs-kernel: setup
 	PATH="/usr/kerberos/sbin:/usr/kerberos/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin" \

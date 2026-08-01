@@ -1,0 +1,40 @@
+--- /home/scripts-build/rpmbuild/SPECS/shibboleth.spec  2025-12-15 19:00:00.000000000 -0500
++++ /home/scripts-build/shibboleth.spec 2026-07-31 19:14:10.654560568 -0400
+@@ -1,13 +1,19 @@
+ Name: shibboleth
+ Version: 3.5.2
+-Release: 1%{?dist}
++Release: 1.scripts.%{scriptsversion}%{?dist}
+ Summary: Open source system for attribute-based Web SSO
+ Group: Productivity/Networking/Security
+ Vendor: Shibboleth Consortium
+ License: Apache-2.0
+ URL: http://shibboleth.net/
+ Source0: https://shibboleth.net/downloads/service-provider/%{version}/%{name}-sp-%{version}.tar.bz2
++
++# Scripts-ification patches.
++Patch1001: shibboleth-restrict-htaccess.patch
++Patch1002: shibboleth-sslcert-compat.patch
++
+ Obsoletes: shibboleth-sp = 2.5.0
++Provides: scripts-shibboleth
+ Requires: openssl
+ %if 0%{?rhel} >= 7 || 0%{?amzn} == 2
+ Requires(pre,preun): xmltooling-schemas%{?_isa} >= 3.3.0
+@@ -73,6 +79,7 @@
+ Group: Development/Libraries/C and C++
+ Requires: %{name} = %{version}-%{release}
+ Obsoletes: shibboleth-sp-devel = 2.5.0
++Provides: scripts-shibboleth-devel
+ Requires: libxerces-c-devel >= 3.2
+ Requires: libxml-security-c-devel >= 2.0.0
+ Requires: libxmltooling-devel >= 3.3.0
+@@ -89,6 +96,8 @@
+ 
+ %prep
+ %setup -q -n %{name}-sp-%{version}
++%patch1001 -p1 -b .restrict-htaccess
++%patch1002 -p1 -b .sslcert-compat
+ 
+ %build
+ %if 0%{?amzn2023}
