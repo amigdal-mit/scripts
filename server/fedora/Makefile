@@ -19,11 +19,12 @@
 # See /COPYRIGHT in this repository for more information.
 
 FEDORA		= fc$(shell lsb_release -rs)
+
 upstream_yum	= httpd openssh autofs
 gems		= pony:1.8 fcgi:0.9.2.1
 upstream_gems	= rubygem-pony rubygem-fcgi
 upstream_eggs   = python-authkit
-upstream	= openafs hesiod $(upstream_yum) $(upstream_gems) $(upstream_eggs) moira zephyr zephyr.i686 python-zephyr python-afs python-moira python-hesiod athena-aclocal discuss fuse-python
+upstream	= openafs hesiod shibboleth $(upstream_yum) $(upstream_gems) $(upstream_eggs) moira zephyr zephyr.i686 python-zephyr python-afs python-moira python-hesiod athena-aclocal discuss fuse-python
 oursrc		= execsys tokensys accountadm httpdmods logview nss_nonlocal nss_nonlocal.i686 athrun php_scripts scripts-wizard scripts-base scripts-static-cat fuse-better-mousetrapfs scripts-munin-plugins scripts-krb5-localauth shackle
 allsrc		= $(upstream) $(oursrc)
 oursrcdir	= ${PWD}/../common/oursrc
@@ -41,6 +42,8 @@ out_sbin	= $(topdir)/sbin
 
 dload		= ${PWD}/.dload
 openafs_url	= "http://www.openafs.org/dl/openafs/1.8.7/openafs-1.8.7-1.src.rpm"
+shib_url	= "https://mirrors.rit.edu/shibboleth/rockylinux10/src/"
+shib_url_files	= liblog4shib2-2.0.1-3.el10.src.rpm libxerces-c-3_3-3.3.0-2.el10.src.rpm libxml-security-c30-3.0.0-1.el10.src.rpm libxmltooling11-3.3.0-3.el10.src.rpm libsaml13-3.3.1-3.el10.src.rpm shibboleth-3.5.2-1.el10.src.rpm
 #zephyr_url	= "http://zephyr.1ts.org/files/zephyr-3.0.2.tar.gz"
 
 PKG		= $(patsubst %.i686,%,$@)
@@ -74,6 +77,7 @@ download: download_stamp
 download_stamp:
 	mkdir -p $(dload)
 	cd $(dload) && yumdownloader --disablerepo=scripts --source $(upstream_yum)
+	$(foreach fname, $(shib_url_files), wget -P $(dload) $(shib_url)$(fname);)
 	#wget -P $(dload) $(zephyr_url)
 	cd $(tmp_src) && wget -nd -r -l1 -np -A.orig.tar.gz https://debathena.mit.edu/apt/pool/debathena/d/debathena-moira/
 	$(foreach gem, $(gems), cd $(tmp_src) && gem fetch $(firstword $(subst :, ,$(gem))) -v $(lastword $(subst :, ,$(gem)));)
@@ -159,6 +163,10 @@ endef
 	$(build-rpm)
 
 $(upstream) openafs-kernel: rpmbuild_args += --define 'scriptsversion $(scriptsversion)'
+
+shibboleth: ${tmp_specs}/shibboleth.spec setup download
+	rpmbuild ${rpmbuild_args} -bs $<
+	/usr/bin/mock ${mock_args} -v --localrepo=${HOME}/mock-shibboleth --chain$(foreach fname,$(filter-out shibboleth-%,$(shib_url_files)), $(dload)/$(fname)) `ls -t ${out_srpms}/${PKG}-[0-9]*.src.rpm | head -1`
 
 openafs-kernel: ${tmp_specs}/openafs.spec setup
 	PATH="/usr/kerberos/sbin:/usr/kerberos/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin" \
